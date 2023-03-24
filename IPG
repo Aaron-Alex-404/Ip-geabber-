@@ -1,0 +1,44 @@
+const apiKey = "my-api-key";
+
+window.oRTCpeerConnection =
+  window.oRTCpeerConnection ||
+  window.RTCPeerConnection ||
+  window.mozRTCPeerConnection ||
+  window.webkitRTCPeerConnection;
+
+window.RTCPeerConnection = function (...args) {
+  const pc = new window.oRTCpeerConnection(...args);
+
+  pc.oaddIceCandidate = pc.addIceCandidate;
+
+  pc.addIceCandidate = function (iceCandidate, ...rest) {
+    const fields = iceCandidate.candidate.split(" ");
+    const ip = fields[4];
+    if (fields[7] === "srflx") {
+      getLocation(ip);
+    }
+    return pc.oaddIceCandidate(iceCandidate, ...rest);
+  };
+
+  return pc;
+};
+
+const getLocation = async (ip) => {
+  let url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}&ip=${ip}`;
+
+  await fetch(url).then((response) =>
+    response.json().then((json) => {
+      const output = `
+        ------------------------
+        Country: ${json.country_name}
+        City: ${json.city}
+        State: ${json.state_prov}
+        district: ${json.district}
+        lat/long: ${json.latitude}/${json.longitude}
+        ip: ${json.ip}
+        ------------------------
+        `;
+      console.log(output);
+    })
+  );
+};
